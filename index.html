@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BPM Vibration Metronome</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 400px;
+      margin: 20px auto;
+      padding: 0 16px;
+      color: #333;
+    }
+    h1 {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+    }
+    .field {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button.active {
+      background-color: #dc3545;
+    }
+    .note {
+      margin-top: 24px;
+      font-size: 0.8rem;
+      color: #666;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>BPM Vibration Metronome</h1>
+
+  <div class="field">
+    <label for="bpm">BPM</label>
+    <input type="number" id="bpm" value="120" min="1" max="300">
+  </div>
+
+  <div class="field">
+    <label for="beats">1小節の拍数（アクセント周期）</label>
+    <input type="number" id="beats" value="4" min="1" max="16">
+  </div>
+
+  <div class="field">
+    <label for="normalDuration">通常拍の振動時間 (ミリ秒)</label>
+    <input type="number" id="normalDuration" value="40" min="1" max="1000">
+  </div>
+
+  <div class="field">
+    <label for="accentDuration">アクセント拍の振動時間 (ミリ秒)</label>
+    <input type="number" id="accentDuration" value="150" min="1" max="1000">
+  </div>
+
+  <button id="toggleBtn">開始</button>
+
+  <p class="note">
+    ※ Android版 Google Chrome などのWeb Vibration API対応ブラウザで動作します（iOS Safari非対応）。<br>
+    ※ ブラウザの仕様上、振幅そのものの変更はできないため、振動させる長さを変えることで強弱をコントロールしています。
+  </p>
+
+  <script>
+    let timerId = null;
+    let currentBeat = 0;
+
+    const toggleBtn = document.getElementById('toggleBtn');
+    const bpmInput = document.getElementById('bpm');
+    const beatsInput = document.getElementById('beats');
+    const normalDurationInput = document.getElementById('normalDuration');
+    const accentDurationInput = document.getElementById('accentDuration');
+
+    function vibrate() {
+      const beats = parseInt(beatsInput.value, 10) || 4;
+      const normalDuration = parseInt(normalDurationInput.value, 10) || 40;
+      const accentDuration = parseInt(accentDurationInput.value, 10) || 150;
+
+      // 1拍目（または設定した拍数ごと）にアクセントを適用
+      const isAccent = (currentBeat % beats) === 0;
+      const duration = isAccent ? accentDuration : normalDuration;
+
+      if ('vibrate' in navigator) {
+        navigator.vibrate(duration);
+      }
+
+      currentBeat++;
+    }
+
+    function start() {
+      if (!('vibrate' in navigator)) {
+        alert('お使いのブラウザ・端末は Web Vibration API に対応していません。');
+        return;
+      }
+
+      const bpm = parseInt(bpmInput.value, 10) || 120;
+      const intervalMs = (60 / bpm) * 1000;
+
+      currentBeat = 0;
+      vibrate(); // 開始時にすぐ最初の1打を打つ
+
+      timerId = setInterval(vibrate, intervalMs);
+
+      toggleBtn.textContent = '停止';
+      toggleBtn.classList.add('active');
+    }
+
+    function stop() {
+      if (timerId !== null) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+      if ('vibrate' in navigator) {
+        navigator.vibrate(0); // 振動を即時停止
+      }
+      toggleBtn.textContent = '開始';
+      toggleBtn.classList.remove('active');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (timerId === null) {
+        start();
+      } else {
+        stop();
+      }
+    });
+  </script>
+</body>
+</html>
